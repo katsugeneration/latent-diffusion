@@ -1,0 +1,5 @@
+models/**/**/samples/
+*.pyc
+*.zip
+*.ckpt
+latent_diffusion.egg-info
