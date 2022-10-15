@@ -28,6 +28,7 @@ def run(
     model,
     model_frozen,
     logdir: str,
+    modeldir: str,
     iter_num: int,
     save_log_interval: int,
     save_ckpt_interval: int,
@@ -86,7 +87,7 @@ def run(
             torch.save(
                 model.state_dict(),
                 os.path.join(
-                    logdir, f"model_{src_class}_to_{target_class}_lr{lr}_{step}.ckpt"
+                    modeldir, f"model_{src_class}_to_{target_class}_lr{lr}_{step}.ckpt"
                 ),
             )
 
@@ -260,8 +261,10 @@ if __name__ == "__main__":
     print("logging to:")
     logdir = os.path.join(logdir, "samples", f"{global_step:08}", now)
     imglogdir = os.path.join(logdir, "img")
+    modeldir = os.path.join(logdir, "model")
 
     os.makedirs(imglogdir)
+    os.makedirs(modeldir)
     print(logdir)
     print(75 * "=")
 
@@ -269,6 +272,7 @@ if __name__ == "__main__":
         model=model_frozen,
         model_frozen=model_frozen,
         logdir=imglogdir,
+        modeldir=modeldir,
         iter_num=opt.iter_num,
         save_log_interval=opt.save_log_interval,
         save_ckpt_interval=opt.save_ckpt_interval,
