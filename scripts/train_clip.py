@@ -11,8 +11,6 @@ from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.util import instantiate_from_config
 from ldm.modules.losses.clip_loss import CLIPLoss
 
-rescale = lambda x: (x + 1.0) / 2.0
-
 
 def custom_to_pil(x):
     x = x.detach().cpu()
