@@ -80,8 +80,9 @@ def run(
         opt.step()
 
         if step % save_log_interval == 0:
-            logs = {"sample": sample}
+            logs = {"sample": sample, "frozen_sample": frozen_sample}
             save_logs(logs, logdir, step, key="sample")
+            save_logs(logs, logdir, step, key="frozen_sample")
 
         if step % save_ckpt_interval == 0:
             torch.save(
