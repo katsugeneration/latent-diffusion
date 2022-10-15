@@ -170,6 +170,13 @@ def get_parser():
         help="use clip pretained model",
         default="ViT-B/32",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        nargs="?",
+        help="random seed variables",
+        default=2,
+    )
     return parser
 
 
@@ -204,6 +211,9 @@ if __name__ == "__main__":
     parser = get_parser()
     opt, unknown = parser.parse_known_args()
     ckpt = None
+
+    torch.manual_seed(opt.seed)
+    np.random.seed(opt.seed)
 
     if not os.path.exists(opt.resume):
         raise ValueError("Cannot find {}".format(opt.resume))
