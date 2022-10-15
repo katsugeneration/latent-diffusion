@@ -71,8 +71,7 @@ def run(
             frozen_sample = model_frozen.decode_first_stage(frozen_latent)
 
         latent = sampler.decode(noise, None, custom_steps)
-        with torch.no_grad():
-            sample = model.decode_first_stage(latent)
+        sample = model.decode_first_stage(latent)
 
         clip_loss = loss_func(frozen_sample, src_class, sample, target_class)
 
