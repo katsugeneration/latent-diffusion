@@ -71,7 +71,7 @@ def run(
             frozen_sample = model_frozen.decode_first_stage(frozen_latent)
 
         latent = sampler.decode(noise, None, custom_steps)
-        sample = model.decode_first_stage(latent)
+        sample = model.first_stage_model.decode(latent)
 
         clip_loss = loss_func(frozen_sample, src_class, sample, target_class)
 
@@ -123,7 +123,7 @@ def get_parser():
         type=float,
         nargs="?",
         help="eta for ddim sampling (0.0 yields deterministic sampling)",
-        default=0.0,
+        default=0.1,
     )
     parser.add_argument(
         "-l", "--logdir", type=str, nargs="?", help="extra logdir", default="none"
@@ -134,7 +134,7 @@ def get_parser():
         type=int,
         nargs="?",
         help="number of steps for ddim and fastdpm sampling",
-        default=50,
+        default=10,
     )
     parser.add_argument("--batch_size", type=int, nargs="?", help="the bs", default=100)
     parser.add_argument(
