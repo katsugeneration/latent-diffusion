@@ -178,7 +178,7 @@ def get_parser():
         type=float,
         nargs="?",
         help="eta for ddim sampling (0.0 yields deterministic sampling)",
-        default=1.0
+        default=0.0
     )
     parser.add_argument(
         "-v",
