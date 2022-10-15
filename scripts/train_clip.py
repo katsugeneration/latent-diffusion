@@ -268,7 +268,7 @@ if __name__ == "__main__":
     print(75 * "=")
 
     run(
-        model=model_frozen,
+        model=model,
         model_frozen=model_frozen,
         logdir=imglogdir,
         modeldir=modeldir,
