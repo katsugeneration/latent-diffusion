@@ -54,7 +54,7 @@ def run(
 
     tstart = time.time()
 
-    for step in trange(iter_num, desc="Training Batches"):
+    for step in trange(1, iter_num+1, desc="Training Batches"):
         opt.zero_grad()
         noise = torch.randn(
             (
