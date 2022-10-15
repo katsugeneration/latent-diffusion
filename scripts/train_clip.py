@@ -106,7 +106,6 @@ def save_logs(logs, path, step, key="sample"):
                 imgpath = os.path.join(path, f"{key}_step_{step}_{n_saved:06}.png")
                 img.save(imgpath)
                 n_saved += 1
-    return n_saved
 
 
 def get_parser():
