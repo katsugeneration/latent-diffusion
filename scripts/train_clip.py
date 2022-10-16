@@ -24,6 +24,22 @@ def custom_to_pil(x):
     return x
 
 
+def compute_clip_direction(style_img_dir: str, clip_loss_func, src_class):
+    if style_img_dir is None:
+        return
+
+    valid_exts = [".png", ".jpg", ".jpeg"]
+    file_list = [
+        os.path.join(style_img_dir, file_name)
+        for file_name in os.listdir(style_img_dir)
+        if os.path.splitext(file_name)[1].lower() in valid_exts
+    ]
+
+    with torch.no_grad():
+        direction = clip_loss_func.compute_txt2img_direction(src_class, file_list)
+        clip_loss_func.target_direction = direction
+
+
 def run(
     model,
     model_frozen,
@@ -34,6 +50,7 @@ def run(
     save_ckpt_interval: int,
     src_class: str,
     target_class: str,
+    style_img_dir: str = None,
     lr=2.0e-06,
     batch_size=50,
     clip_model="ViT-B/32",
@@ -42,6 +59,8 @@ def run(
     device="cpu",
 ):
     loss_func = CLIPLoss(device, clip_model=clip_model)
+    if style_img_dir is not None:
+        compute_clip_direction(style_img_dir, loss_func, src_class)
 
     with torch.no_grad():
         frozen_sampler = DDIMSampler(model_frozen)
@@ -55,7 +74,7 @@ def run(
 
     tstart = time.time()
 
-    for step in trange(1, iter_num+1, desc="Training Batches"):
+    for step in trange(1, iter_num + 1, desc="Training Batches"):
         opt.zero_grad()
         noise = torch.randn(
             (
@@ -159,6 +178,9 @@ def get_parser():
     )
     parser.add_argument(
         "--target_class", type=str, nargs="?", help="target class text", default=None
+    )
+    parser.add_argument(
+        "--style_img_dir", type=str, nargs="?", help="Style image directory path", default=None
     )
     parser.add_argument(
         "--lr", type=float, nargs="?", help="initial learning rate", default=2.0e-06
@@ -277,6 +299,7 @@ if __name__ == "__main__":
         save_ckpt_interval=opt.save_ckpt_interval,
         src_class=opt.src_class,
         target_class=opt.target_class,
+        style_img_dir=opt.style_img_dir,
         lr=opt.lr,
         batch_size=opt.batch_size,
         clip_model=opt.clip_model,
