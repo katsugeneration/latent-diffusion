@@ -229,21 +229,19 @@ def load_model_from_config(config, sd, device):
     return model
 
 
-def load_model(config, ckpt, gpu, eval_mode):
+def load_model(config, ckpt, device, eval_mode):
     if ckpt:
         print(f"Loading model from {ckpt}")
         pl_sd = torch.load(ckpt, map_location="cpu")
-        global_step = pl_sd["global_step"]
     else:
         pl_sd = {"state_dict": None}
-        global_step = None
     model = load_model_from_config(config.model,
                                    pl_sd["state_dict"], device)
     if eval_mode:
         for p in model.parameters():
             p.requires_grad = False
         model.eval()
-    return model, global_step
+    return model
 
 
 if __name__ == "__main__":
@@ -290,15 +288,14 @@ if __name__ == "__main__":
 
     print(config)
 
-    src_model, global_step = load_model(config, ckpt, device, True)
+    src_model = load_model(config, ckpt, device, True)
     if opt.target is not None:
-        target_model, global_step = load_model(config, opt.target, device, True)
+        target_model = load_model(config, opt.target, device, True)
     else:
         target_model = src_model
-    print(f"global step: {global_step}")
     print(75 * "=")
     print("logging to:")
-    logdir = os.path.join(logdir, "samples", f"{global_step:08}", now)
+    logdir = os.path.join(logdir, "samples", now)
     imglogdir = os.path.join(logdir, "img")
     numpylogdir = os.path.join(logdir, "numpy")
 
