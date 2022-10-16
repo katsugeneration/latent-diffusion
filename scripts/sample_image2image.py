@@ -107,7 +107,8 @@ def make_latent(model, batch, batch_size, t_enc, custom_steps, eta, device):
     latent = sampler.stochastic_encode(latent, torch.tensor([min(t_enc, custom_steps-1)]*batch_size).to(device))
     return latent
 
-def run(model, model_frozen, logdir, batch, batch_size=50, vanilla=False, custom_steps=None, eta=None, nplog=None, device='cpu'):
+@torch.no_grad()
+def run(src_model, target_model, logdir, batch, batch_size=50, vanilla=False, custom_steps=None, eta=None, nplog=None, device='cpu'):
     if vanilla:
         print(f'Using Vanilla DDPM sampling with {model.num_timesteps} sampling steps.')
     else:
@@ -117,13 +118,13 @@ def run(model, model_frozen, logdir, batch, batch_size=50, vanilla=False, custom
     tstart = time.time()
     n_saved = len(glob.glob(os.path.join(logdir,'*.png')))-1
     # path = logdir
-    if model.cond_stage_model is None:
+    if target_model.cond_stage_model is None:
         all_images = []
         print(f"Running unconditional sampling for {len(batch)} samples")
         t_enc = int(1.0 * custom_steps)
         for _ in trange(len(batch) // batch_size, desc="Sampling Batches (unconditional)"):
-            z = make_latent(model_frozen, batch, batch_size, t_enc, custom_steps, eta, device)
-            logs = make_convolutional_sample(model, z, t_enc, custom_steps, eta)
+            z = make_latent(src_model, batch, batch_size, t_enc, custom_steps, eta, device)
+            logs = make_convolutional_sample(target_model, z, t_enc, custom_steps, eta)
             n_saved = save_logs(logs, logdir, n_saved=n_saved, key="sample")
             all_images.extend([custom_to_np(logs["sample"])])
         all_img = np.concatenate(all_images, axis=0)
@@ -170,6 +171,14 @@ def get_parser():
         type=str,
         nargs="?",
         help="path to datadir",
+        default=None
+    )
+    parser.add_argument(
+        "-t",
+        "--target",
+        type=str,
+        nargs="?",
+        help="target model checkpoint path",
         default=None
     )
     parser.add_argument(
@@ -281,8 +290,11 @@ if __name__ == "__main__":
 
     print(config)
 
-    model_frozen, global_step = load_model(config, ckpt, device, True)
-    # model, global_step = load_model(config, ckpt, device, False)
+    src_model, global_step = load_model(config, ckpt, device, True)
+    if opt.target is not None:
+        target_model, global_step = load_model(config, opt.target, device, True)
+    else:
+        target_model = src_model
     print(f"global step: {global_step}")
     print(75 * "=")
     print("logging to:")
@@ -304,7 +316,7 @@ if __name__ == "__main__":
     print(sampling_conf)
 
     batch = make_batch(opt.data, device)
-    run(model_frozen, model_frozen, imglogdir, batch, eta=opt.eta,
+    run(target_model, src_model, imglogdir, batch, eta=opt.eta,
         vanilla=opt.vanilla_sample, custom_steps=opt.custom_steps,
         batch_size=opt.batch_size, nplog=numpylogdir, device=device)
 
