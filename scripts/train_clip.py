@@ -123,7 +123,7 @@ def get_parser():
         type=float,
         nargs="?",
         help="eta for ddim sampling (0.0 yields deterministic sampling)",
-        default=0.1,
+        default=1e-4,
     )
     parser.add_argument(
         "-l", "--logdir", type=str, nargs="?", help="extra logdir", default="none"
@@ -138,7 +138,7 @@ def get_parser():
     )
     parser.add_argument("--batch_size", type=int, nargs="?", help="the bs", default=100)
     parser.add_argument(
-        "--iter_num", type=int, nargs="?", help="num of iteration", default=300
+        "--iter_num", type=int, nargs="?", help="num of iteration", default=200
     )
     parser.add_argument(
         "--save_log_interval",
@@ -152,7 +152,7 @@ def get_parser():
         type=int,
         nargs="?",
         help="interval of ckpt saves",
-        default=150,
+        default=50,
     )
     parser.add_argument(
         "--src_class", type=str, nargs="?", help="src class text", default=None
