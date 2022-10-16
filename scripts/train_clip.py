@@ -24,7 +24,7 @@ def custom_to_pil(x):
     return x
 
 
-def compute_clip_direction(style_img_dir: str, clip_loss_func, src_class):
+def compute_clip_direction(style_img_dir: str, clip_loss_func, src_class, target_class):
     if style_img_dir is None:
         return
 
@@ -36,7 +36,7 @@ def compute_clip_direction(style_img_dir: str, clip_loss_func, src_class):
     ]
 
     with torch.no_grad():
-        direction = clip_loss_func.compute_txt2img_direction(src_class, file_list)
+        direction = clip_loss_func.compute_txt2txt_and_img_direction(src_class, target_class, file_list)
         clip_loss_func.target_direction = direction
 
 
@@ -60,7 +60,7 @@ def run(
 ):
     loss_func = CLIPLoss(device, clip_model=clip_model)
     if style_img_dir is not None:
-        compute_clip_direction(style_img_dir, loss_func, src_class)
+        compute_clip_direction(style_img_dir, loss_func, src_class, target_class)
 
     with torch.no_grad():
         frozen_sampler = DDIMSampler(model_frozen)
