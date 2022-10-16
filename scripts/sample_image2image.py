@@ -313,7 +313,7 @@ if __name__ == "__main__":
     print(sampling_conf)
 
     batch = make_batch(opt.data, device)
-    run(target_model, src_model, imglogdir, batch, eta=opt.eta,
+    run(src_model, target_model, imglogdir, batch, eta=opt.eta,
         vanilla=opt.vanilla_sample, custom_steps=opt.custom_steps,
         batch_size=opt.batch_size, nplog=numpylogdir, device=device)
 
