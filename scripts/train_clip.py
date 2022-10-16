@@ -85,7 +85,7 @@ def run(
 
         if step % save_ckpt_interval == 0:
             torch.save(
-                model.state_dict(),
+                model,
                 os.path.join(
                     modeldir, f"model_{src_class}_to_{target_class}_lr{lr}_{step}.ckpt"
                 ),
