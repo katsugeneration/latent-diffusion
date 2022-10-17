@@ -109,7 +109,7 @@ def run(
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
-                    modeldir, f"model_{src_class}_to_{target_class}_lr{lr}_{step}.ckpt"
+                    modeldir, f"model_{src_class}_to_{target_class}_lr{lr}_l1{l1_w}_{step}.ckpt"
                 ),
             )
 
