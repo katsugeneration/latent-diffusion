@@ -53,6 +53,7 @@ def run(
     style_img_dir: str = None,
     lr=2.0e-06,
     batch_size=50,
+    l1_w=0.0,
     clip_model="ViT-B/32",
     custom_steps=None,
     eta=None,
@@ -93,8 +94,10 @@ def run(
         sample = model.first_stage_model.decode(latent)
 
         clip_loss = loss_func(frozen_sample, src_class, sample, target_class)
+        l1_loss = torch.abs(frozen_sample - sample).mean()
+        loss = clip_loss + l1_w * l1_loss
 
-        clip_loss.backward()
+        loss.backward()
         opt.step()
 
         if step % save_log_interval == 0:
@@ -184,6 +187,9 @@ def get_parser():
     )
     parser.add_argument(
         "--lr", type=float, nargs="?", help="initial learning rate", default=2.0e-06
+    )
+    parser.add_argument(
+        "--l1_w", type=float, nargs="?", help="L1 loss weight", default=0.0
     )
     parser.add_argument(
         "--clip_model",
@@ -302,6 +308,7 @@ if __name__ == "__main__":
         style_img_dir=opt.style_img_dir,
         lr=opt.lr,
         batch_size=opt.batch_size,
+        l1_w=opt.l1_w,
         clip_model=opt.clip_model,
         eta=opt.eta,
         custom_steps=opt.custom_steps,
