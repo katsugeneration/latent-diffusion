@@ -105,7 +105,7 @@ def make_latent(model, batch, batch_size, t_enc, custom_steps, eta, device):
     sampler = DDIMSampler(model)
     sampler.make_schedule(ddim_num_steps=custom_steps, ddim_eta=eta, verbose=False)
     noise = torch.randn_like(latent).to(device) * 1e-5
-    latent = sampler.stochastic_encode(latent, torch.tensor([min(t_enc, custom_steps-1)]*batch_size, noise=noise).to(device))
+    latent = sampler.stochastic_encode(latent, torch.tensor([min(t_enc, custom_steps-1)]*batch_size).to(device), noise=noise)
     return latent
 
 @torch.no_grad()
