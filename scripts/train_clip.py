@@ -1,6 +1,7 @@
 import argparse, os, sys, glob, datetime, yaml
 import torch
 import time
+import itertools
 import numpy as np
 from tqdm import trange
 
@@ -36,7 +37,9 @@ def compute_clip_direction(style_img_dir: str, clip_loss_func, src_class, target
     ]
 
     with torch.no_grad():
-        direction = clip_loss_func.compute_txt2txt_and_img_direction(src_class, target_class, file_list)
+        direction = clip_loss_func.compute_txt2txt_and_img_direction(
+            src_class, target_class, file_list
+        )
         clip_loss_func.target_direction = direction
 
 
@@ -57,6 +60,7 @@ def run(
     clip_model="ViT-B/32",
     custom_steps=None,
     eta=None,
+    only_train_output=True,
     device="cpu",
 ):
     loss_func = CLIPLoss(device, clip_model=clip_model)
@@ -71,7 +75,17 @@ def run(
         sampler = DDIMSampler(model)
         sampler.make_schedule(ddim_num_steps=custom_steps, ddim_eta=eta, verbose=False)
 
-    opt = torch.optim.AdamW(model.parameters(), lr=lr)
+    if only_train_output:
+        opt = torch.optim.AdamW(
+            list(
+                itertools.chain.from_iterable(
+                    [b.parameters() for b in model.model.diffusion_model.output_blocks]
+                )
+            ),
+            lr=lr,
+        )
+    else:
+        opt = torch.optim.AdamW(model.parameters(), lr=lr)
 
     tstart = time.time()
 
@@ -109,7 +123,8 @@ def run(
             torch.save(
                 {"state_dict": model.state_dict()},
                 os.path.join(
-                    modeldir, f"model_{src_class}_to_{target_class}_lr{lr}_l1{l1_w}_{step}.ckpt"
+                    modeldir,
+                    f"model_{src_class}_to_{target_class}_lr{lr}_l1{l1_w}_{step}.ckpt",
                 ),
             )
 
@@ -183,13 +198,22 @@ def get_parser():
         "--target_class", type=str, nargs="?", help="target class text", default=None
     )
     parser.add_argument(
-        "--style_img_dir", type=str, nargs="?", help="Style image directory path", default=None
+        "--style_img_dir",
+        type=str,
+        nargs="?",
+        help="Style image directory path",
+        default=None,
     )
     parser.add_argument(
         "--lr", type=float, nargs="?", help="initial learning rate", default=2.0e-06
     )
     parser.add_argument(
         "--l1_w", type=float, nargs="?", help="L1 loss weight", default=0.0
+    )
+    parser.add_argument(
+        "--only_train_output",
+        action='store_true',
+        help="Only training unet output block",
     )
     parser.add_argument(
         "--clip_model",
@@ -312,6 +336,7 @@ if __name__ == "__main__":
         clip_model=opt.clip_model,
         eta=opt.eta,
         custom_steps=opt.custom_steps,
+        only_train_output=opt.only_train_output,
         device=device,
     )
 
