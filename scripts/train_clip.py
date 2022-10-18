@@ -35,7 +35,7 @@ class LocalImageDataset(Dataset):
         image = Image.open(img_path).convert("RGB")
         image = image.resize(self.resolution, resample=Image.LANCZOS)
         image = np.array(image)
-        lr_image = degradation_fn_bsr_light(image, sf=self.downscale_f)['image']
+        lr_image = degradation_fn_bsr_light(image, sf=self.downscale_f)["image"]
 
         image = image.astype(np.float32) / 127.5 - 1.0
         image = image.transpose(2, 0, 1)
@@ -59,7 +59,13 @@ def custom_to_pil(x):
     return x
 
 
-def compute_clip_direction(style_img_dir: str, clip_loss_func, src_class, target_class):
+def compute_clip_direction(
+    style_img_dir: str,
+    clip_loss_func: CLIPLoss,
+    src_class: str,
+    target_class: str,
+    use_target_class: bool = True,
+):
     if style_img_dir is None:
         return
 
@@ -71,9 +77,12 @@ def compute_clip_direction(style_img_dir: str, clip_loss_func, src_class, target
     ]
 
     with torch.no_grad():
-        direction = clip_loss_func.compute_txt2txt_and_img_direction(
-            src_class, target_class, file_list
-        )
+        if use_target_class:
+            direction = clip_loss_func.compute_txt2txt_and_img_direction(
+                src_class, target_class, file_list
+            )
+        else:
+            direction = clip_loss_func.compute_txt2img_direction(src_class, file_list)
         clip_loss_func.target_direction = direction
 
 
@@ -88,6 +97,7 @@ def run(
     src_class: str,
     target_class: str,
     style_img_dir: str = None,
+    use_target_class: bool = True,
     lr=2.0e-06,
     batch_size=50,
     l1_w=0.0,
@@ -100,7 +110,9 @@ def run(
 ):
     loss_func = CLIPLoss(device, clip_model=clip_model)
     if style_img_dir is not None:
-        compute_clip_direction(style_img_dir, loss_func, src_class, target_class)
+        compute_clip_direction(
+            style_img_dir, loss_func, src_class, target_class, use_target_class
+        )
 
     with torch.no_grad():
         frozen_sampler = DDIMSampler(model_frozen)
@@ -134,7 +146,9 @@ def run(
                 if model.cond_stage_key is not None:
                     if model.cond_stage_key == "LR_image":
                         if not model.cond_stage_trainable:
-                            cond = model_frozen.get_learned_conditioning(lr_image.to(device))
+                            cond = model_frozen.get_learned_conditioning(
+                                lr_image.to(device)
+                            )
                         else:
                             cond = lr_image.to(device)
                 else:
@@ -251,6 +265,11 @@ def get_parser():
         nargs="?",
         help="Style image directory path",
         default=None,
+    )
+    parser.add_argument(
+        "--use_target_class",
+        action="store_true",
+        help="Use target class for compute direction",
     )
     parser.add_argument(
         "--lr", type=float, nargs="?", help="initial learning rate", default=2.0e-06
@@ -390,6 +409,7 @@ if __name__ == "__main__":
         src_class=opt.src_class,
         target_class=opt.target_class,
         style_img_dir=opt.style_img_dir,
+        use_target_class=opt.use_target_class,
         lr=opt.lr,
         batch_size=opt.batch_size,
         l1_w=opt.l1_w,
