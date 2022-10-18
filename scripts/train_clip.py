@@ -130,7 +130,7 @@ def run(
         cond = None
         with torch.no_grad():
             if data is not None:
-                _, lr_image = next(data)
+                _, lr_image = next(iter(data))
                 if model.cond_stage_key is not None:
                     if model.cond_stage_key == "LR_image":
                         if not model.cond_stage_trainable:
@@ -373,11 +373,11 @@ if __name__ == "__main__":
     print(logdir)
     print(75 * "=")
 
-    data = iter(DataLoader(
+    data = DataLoader(
         LocalImageDataset(opt.train_img_dir, (model.image_size, model.image_size), 4),
         batch_size=opt.batch_size,
         shuffle=True,
-    ))
+    )
 
     run(
         model=model,
