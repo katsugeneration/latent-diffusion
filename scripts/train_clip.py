@@ -130,13 +130,7 @@ def run(
         cond = None
         with torch.no_grad():
             if data is not None:
-                image, lr_image = next(data)
-                encoder_posterior = model_frozen.encode_first_stage(image.to(device))
-                z = model_frozen.get_first_stage_encoding(encoder_posterior)
-                noise = frozen_sampler.stochastic_encode(
-                    z, torch.tensor([custom_steps-1] * batch_size).to(device)
-                ).detach()
-
+                _, lr_image = next(data)
                 if model.cond_stage_key is not None:
                     if model.cond_stage_key == "LR_image":
                         if not model.cond_stage_trainable:
@@ -145,15 +139,14 @@ def run(
                             cond = lr_image.to(device)
                 else:
                     raise NotImplementedError()
-            else:
-                noise = torch.randn(
-                    (
-                        batch_size,
-                        model.model.diffusion_model.in_channels,
-                        model.model.diffusion_model.image_size,
-                        model.model.diffusion_model.image_size,
-                    )
-                ).to(device)
+            noise = torch.randn(
+                (
+                    batch_size,
+                    model.channels,
+                    model.image_size,
+                    model.image_size,
+                )
+            ).to(device)
 
         with torch.no_grad():
             frozen_latent = frozen_sampler.decode(noise, cond, custom_steps)
@@ -381,7 +374,7 @@ if __name__ == "__main__":
     print(75 * "=")
 
     data = iter(DataLoader(
-        LocalImageDataset(opt.train_img_dir, (256, 256), 4),
+        LocalImageDataset(opt.train_img_dir, (model.image_size, model.image_size), 4),
         batch_size=opt.batch_size,
         shuffle=True,
     ))
