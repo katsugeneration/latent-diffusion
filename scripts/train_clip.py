@@ -3,7 +3,7 @@ import torch
 import time
 import itertools
 import numpy as np
-from tqdm import trange
+from tqdm.auto import trange
 
 from omegaconf import OmegaConf
 from PIL import Image
