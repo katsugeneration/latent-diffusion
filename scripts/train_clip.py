@@ -186,7 +186,7 @@ def run(
                 {"state_dict": model.state_dict()},
                 os.path.join(
                     modeldir,
-                    f"model_{src_class}_to_{target_class}_lr{lr}_l1{l1_w}_{step}.ckpt",
+                    f"model_{src_class}_to_{target_class}_lr{lr}_l1{l1_w}_{step:06}.ckpt",
                 ),
             )
 
@@ -202,7 +202,7 @@ def save_logs(logs, path, step, key="sample"):
             n_saved = 0
             for x in batch:
                 img = custom_to_pil(x)
-                imgpath = os.path.join(path, f"{key}_step_{step}_{n_saved:06}.png")
+                imgpath = os.path.join(path, f"{key}_step_{step:06}_{n_saved:06}.png")
                 img.save(imgpath)
                 n_saved += 1
 
