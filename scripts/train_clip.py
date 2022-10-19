@@ -102,6 +102,7 @@ def run(
     batch_size=50,
     l1_w=0.0,
     clip_model="ViT-B/32",
+    resolution=256,
     custom_steps=None,
     eta=None,
     only_train_output=True,
@@ -157,8 +158,8 @@ def run(
                 (
                     batch_size,
                     model.channels,
-                    model.image_size,
-                    model.image_size,
+                    resolution,
+                    resolution,
                 )
             ).to(device)
 
@@ -296,6 +297,13 @@ def get_parser():
         default="ViT-B/32",
     )
     parser.add_argument(
+        "--resolution",
+        type=int,
+        nargs="?",
+        help="training target resolution",
+        default=256,
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         nargs="?",
@@ -393,7 +401,7 @@ if __name__ == "__main__":
     print(75 * "=")
 
     data = DataLoader(
-        LocalImageDataset(opt.train_img_dir, (model.image_size, model.image_size), 4),
+        LocalImageDataset(opt.train_img_dir, (opt.resolution, opt.resolution), 4),
         batch_size=opt.batch_size,
         shuffle=True,
     )
@@ -414,6 +422,7 @@ if __name__ == "__main__":
         batch_size=opt.batch_size,
         l1_w=opt.l1_w,
         clip_model=opt.clip_model,
+        resolution=opt.resolution,
         eta=opt.eta,
         custom_steps=opt.custom_steps,
         only_train_output=opt.only_train_output,
