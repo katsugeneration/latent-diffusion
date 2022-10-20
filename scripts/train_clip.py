@@ -158,8 +158,8 @@ def run(
                 (
                     batch_size,
                     model.channels,
-                    resolution,
-                    resolution,
+                    int(resolution // 4),
+                    int(resolution // 4),
                 )
             ).to(device)
 
