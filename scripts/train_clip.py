@@ -65,6 +65,7 @@ def compute_clip_direction(
     src_class: str,
     target_class: str,
     use_target_class: bool = True,
+    frozen_samples: torch.Tensor = None,
 ):
     if style_img_dir is None:
         return
@@ -77,7 +78,11 @@ def compute_clip_direction(
     ]
 
     with torch.no_grad():
-        if use_target_class:
+        if frozen_samples is not None:
+            direction = clip_loss_func.compute_img2img_direction(
+                frozen_samples, file_list
+            )
+        elif use_target_class:
             direction = clip_loss_func.compute_txt2txt_and_img_direction(
                 src_class, target_class, file_list
             )
@@ -110,10 +115,6 @@ def run(
     data=None,
 ):
     loss_func = CLIPLoss(device, clip_model=clip_model)
-    if style_img_dir is not None:
-        compute_clip_direction(
-            style_img_dir, loss_func, src_class, target_class, use_target_class
-        )
 
     with torch.no_grad():
         frozen_sampler = DDIMSampler(model_frozen)
@@ -122,6 +123,22 @@ def run(
         )
         sampler = DDIMSampler(model)
         sampler.make_schedule(ddim_num_steps=custom_steps, ddim_eta=eta, verbose=False)
+
+    if style_img_dir is not None:
+        with torch.no_grad():
+            if data is not None:
+                src_samples = torch.cat([im for im, _ in data])
+            else:
+                raise NotImplementedError()
+
+            compute_clip_direction(
+                style_img_dir,
+                loss_func,
+                src_class,
+                target_class,
+                use_target_class,
+                src_samples,
+            )
 
     if only_train_output:
         opt = torch.optim.AdamW(
