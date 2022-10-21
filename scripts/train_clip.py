@@ -12,7 +12,6 @@ from torch.utils.data import Dataset, DataLoader
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.util import instantiate_from_config
 from ldm.modules.losses.clip_loss import CLIPLoss
-from ldm.modules.image_degradation import degradation_fn_bsr_light
 
 
 class LocalImageDataset(Dataset):
@@ -33,14 +32,21 @@ class LocalImageDataset(Dataset):
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self.file_list[idx])
         image = Image.open(img_path).convert("RGB")
-        image = image.resize(self.resolution, resample=Image.LANCZOS)
-        image = np.array(image)
-        lr_image = degradation_fn_bsr_light(image, sf=self.downscale_f)["image"]
+        lr_image = image.resize(
+            (
+                int(self.resolution[0] // self.downscale_f),
+                int(self.resolution[1] // self.downscale_f),
+            ),
+            resample=Image.Resampling.LANCZOS,
+        )
+        image = image.resize(self.resolution, resample=Image.Resampling.LANCZOS)
 
+        image = np.array(image)
         image = image.astype(np.float32) / 127.5 - 1.0
         image = image.transpose(2, 0, 1)
         image = torch.from_numpy(image)
 
+        lr_image = np.array(lr_image)
         lr_image = lr_image.astype(np.float32) / 127.5 - 1.0
         lr_image = lr_image.transpose(2, 0, 1)
         lr_image = torch.from_numpy(lr_image)
