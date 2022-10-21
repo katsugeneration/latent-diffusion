@@ -123,10 +123,11 @@ def run(
     loss_func = CLIPLoss(device, clip_model=clip_model)
 
     with torch.no_grad():
-        frozen_sampler = DDIMSampler(model_frozen)
-        frozen_sampler.make_schedule(
-            ddim_num_steps=custom_steps, ddim_eta=eta, verbose=False
-        )
+        if data is None:
+            frozen_sampler = DDIMSampler(model_frozen)
+            frozen_sampler.make_schedule(
+                ddim_num_steps=custom_steps, ddim_eta=eta, verbose=False
+            )
         sampler = DDIMSampler(model)
         sampler.make_schedule(ddim_num_steps=custom_steps, ddim_eta=eta, verbose=False)
 
@@ -170,7 +171,7 @@ def run(
                 if model.cond_stage_key is not None:
                     if model.cond_stage_key == "LR_image":
                         if not model.cond_stage_trainable:
-                            cond = model_frozen.get_learned_conditioning(
+                            cond = model.get_learned_conditioning(
                                 lr_image.to(device)
                             )
                         else:
@@ -186,9 +187,12 @@ def run(
                 )
             ).to(device)
 
-        with torch.no_grad():
-            frozen_latent = frozen_sampler.decode(noise, cond, custom_steps)
-            frozen_sample = model_frozen.decode_first_stage(frozen_latent)
+        if data is not None:
+            frozen_sample = img.to(device)
+        else:
+            with torch.no_grad():
+                frozen_latent = frozen_sampler.decode(noise, cond, custom_steps)
+                frozen_sample = model_frozen.decode_first_stage(frozen_latent)
 
         latent = sampler.decode(noise, cond, custom_steps)
         sample = model.first_stage_model.decode(latent)
@@ -413,7 +417,10 @@ if __name__ == "__main__":
 
     print(config)
 
-    model_frozen, global_step = load_model(config, ckpt, device, True)
+    if opt.train_img_dir is None:
+        model_frozen, global_step = load_model(config, ckpt, device, True)
+    else:
+        model_frozen = None
     model, global_step = load_model(config, ckpt, device, False)
     print(f"global step: {global_step}")
     print(75 * "=")
