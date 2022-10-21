@@ -160,7 +160,7 @@ def run(
         cond = None
         with torch.no_grad():
             if data is not None:
-                _, lr_image = next(iter(data))
+                img, lr_image = next(iter(data))
                 if model.cond_stage_key is not None:
                     if model.cond_stage_key == "LR_image":
                         if not model.cond_stage_trainable:
@@ -198,6 +198,10 @@ def run(
             logs = {"sample": sample, "frozen_sample": frozen_sample}
             save_logs(logs, logdir, step, key="sample")
             save_logs(logs, logdir, step, key="frozen_sample")
+            if data is not None:
+                logs = {"original": img, "lr": lr_image}
+                save_logs(logs, logdir, step, key="original")
+                save_logs(logs, logdir, step, key="lr")
 
         if step % save_ckpt_interval == 0:
             torch.save(
