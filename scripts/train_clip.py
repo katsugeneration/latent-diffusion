@@ -1,4 +1,5 @@
 import argparse, os, sys, glob, datetime, yaml
+import random
 import torch
 import time
 import itertools
@@ -372,6 +373,8 @@ if __name__ == "__main__":
     opt, unknown = parser.parse_known_args()
     ckpt = None
 
+    torch.backends.cudnn.benchmark = False
+    random.seed(opt.seed)
     torch.manual_seed(opt.seed)
     np.random.seed(opt.seed)
 
@@ -427,10 +430,13 @@ if __name__ == "__main__":
     print(logdir)
     print(75 * "=")
 
+    generator = torch.Generator()
+    generator.manual_seed(opt.seed)
     data = DataLoader(
         LocalImageDataset(opt.train_img_dir, (opt.resolution, opt.resolution), 4),
         batch_size=opt.batch_size,
         shuffle=True,
+        generator=generator,
     )
 
     run(
