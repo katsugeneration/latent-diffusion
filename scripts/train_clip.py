@@ -225,13 +225,11 @@ def run(
         opt.step()
 
         if step % save_log_interval == 0:
-            logs = {"sample": sample, "frozen_sample": frozen_sample}
-            save_logs(logs, logdir, step, key="sample")
-            save_logs(logs, logdir, step, key="frozen_sample")
-            if data is not None:
-                logs = {"original": img, "lr": lr_image}
-                save_logs(logs, logdir, step, key="original")
-                save_logs(logs, logdir, step, key="lr")
+            with torch.no_grad():
+                samples = torch.cat([sample, frozen_sample], dim=-1).to('cpu')
+                if data is not None:
+                    samples = torch.cat([samples, img], dim=-1)
+                save_logs(samples, logdir, step)
 
         if step % save_ckpt_interval == 0:
             torch.save(
@@ -248,15 +246,12 @@ def run(
 
 
 def save_logs(logs, path, step, key="sample"):
-    for k in logs:
-        if k == key:
-            batch = logs[key]
-            n_saved = 0
-            for x in batch:
-                img = custom_to_pil(x)
-                imgpath = os.path.join(path, f"{key}_step_{step:06}_{n_saved:06}.png")
-                img.save(imgpath)
-                n_saved += 1
+    n_saved = 0
+    for x in logs:
+        img = custom_to_pil(x)
+        imgpath = os.path.join(path, f"{key}_step_{step:06}_{n_saved:06}.png")
+        img.save(imgpath)
+        n_saved += 1
 
 
 def get_parser():
