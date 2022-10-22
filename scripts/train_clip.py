@@ -134,7 +134,30 @@ def run(
     if style_img_dir is not None:
         with torch.no_grad():
             if data is not None:
-                src_samples = torch.cat([im for im, _ in data])
+                src_samples = []
+                with torch.no_grad():
+                    for _, lr_image in data:
+                        if model.cond_stage_key is not None:
+                            if model.cond_stage_key == "LR_image":
+                                if not model.cond_stage_trainable:
+                                    cond = model_frozen.get_learned_conditioning(
+                                        lr_image.to(device)
+                                    )
+                                else:
+                                    cond = lr_image.to(device)
+                        noise = torch.randn(
+                            (
+                                batch_size,
+                                model.channels,
+                                int(resolution // 4),
+                                int(resolution // 4),
+                            )
+                        ).to(device)
+
+                    frozen_latent = frozen_sampler.decode(noise, cond, custom_steps)
+                    frozen_sample = model_frozen.decode_first_stage(frozen_latent)
+                    src_samples.append(frozen_sample)
+                src_samples = torch.cat(src_samples)
             else:
                 raise NotImplementedError()
 
@@ -215,7 +238,7 @@ def run(
                 {"state_dict": model.state_dict()},
                 os.path.join(
                     modeldir,
-                    f"model_{src_class}_to_{target_class}_lr{lr}_l1{l1_w}_{step:06}.ckpt",
+                    f"model_{step:06}.ckpt",
                 ),
             )
 
@@ -421,7 +444,7 @@ if __name__ == "__main__":
     print(f"global step: {global_step}")
     print(75 * "=")
     print("logging to:")
-    logdir = os.path.join(logdir, "samples", f"{global_step:08}", now)
+    logdir = os.path.join(logdir, "samples", f"{global_step:08}", f"{now}_{opt.src_class}_to_{opt.target_class}_lr{opt.lr}_l1{opt.l1_w}_r{opt.resolution}_b{opt.batch_size}")
     imglogdir = os.path.join(logdir, "img")
     modeldir = os.path.join(logdir, "model")
 
