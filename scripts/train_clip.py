@@ -73,6 +73,7 @@ def compute_clip_direction(
     target_class: str,
     use_target_class: bool = True,
     frozen_samples: torch.Tensor = None,
+    unify_mode: str = "median",
 ):
     if style_img_dir is None:
         return
@@ -87,14 +88,16 @@ def compute_clip_direction(
     with torch.no_grad():
         if frozen_samples is not None:
             direction = clip_loss_func.compute_img2img_direction(
-                frozen_samples, file_list
+                frozen_samples, file_list, unify_mode=unify_mode
             )
         elif use_target_class:
             direction = clip_loss_func.compute_txt2txt_and_img_direction(
-                src_class, target_class, file_list
+                src_class, target_class, file_list, unify_mode=unify_mode
             )
         else:
-            direction = clip_loss_func.compute_txt2img_direction(src_class, file_list)
+            direction = clip_loss_func.compute_txt2img_direction(
+                src_class, file_list, unify_mode=unify_mode
+            )
         clip_loss_func.target_direction = direction
 
 
@@ -120,6 +123,7 @@ def run(
     only_train_output=True,
     device="cpu",
     data=None,
+    unify_mode="median",
 ):
     loss_func = CLIPLoss(device, clip_model=clip_model)
 
@@ -167,6 +171,7 @@ def run(
                 target_class,
                 use_target_class,
                 src_samples,
+                unify_mode,
             )
 
     if only_train_output:
@@ -356,6 +361,13 @@ def get_parser():
         default=256,
     )
     parser.add_argument(
+        "--unify_mode",
+        type=str,
+        nargs="?",
+        help="mode of unify style image embeddings",
+        default="median",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         nargs="?",
@@ -449,7 +461,7 @@ if __name__ == "__main__":
         logdir,
         "samples",
         f"{global_step:08}",
-        f"{now}_{opt.src_class}_to_{opt.target_class}_lr{opt.lr}_l1{opt.l1_w}_r{opt.resolution}_b{opt.batch_size}",
+        f"{now}_{opt.src_class}_to_{opt.target_class}_lr{opt.lr}_l1{opt.l1_w}_r{opt.resolution}_b{opt.batch_size}_u{opt.unify_mode}",
     )
     imglogdir = os.path.join(logdir, "img")
     modeldir = os.path.join(logdir, "model")
@@ -490,6 +502,7 @@ if __name__ == "__main__":
         only_train_output=opt.only_train_output,
         device=device,
         data=data,
+        unify_mode=opt.unify_mode,
     )
 
     print("done.")

@@ -7,7 +7,6 @@ from PIL import Image
 
 from ldm.text_templates import imagenet_templates, part_templates
 
-
 class DirectionLoss(torch.nn.Module):
 
     def __init__(self, loss_type='mse'):
@@ -116,7 +115,7 @@ class CLIPLoss(torch.nn.Module):
 
         return text_direction
 
-    def compute_img2img_direction(self, source_images: torch.Tensor, target_images: list) -> torch.Tensor:
+    def compute_img2img_direction(self, source_images: torch.Tensor, target_images: list, unify_mode: str = 'mean') -> torch.Tensor:
         with torch.no_grad():
 
             src_encoding = self.get_image_features(source_images)
@@ -125,21 +124,26 @@ class CLIPLoss(torch.nn.Module):
             target_encodings = []
             for target_img in target_images:
                 preprocessed = self.clip_preprocess(Image.open(target_img)).unsqueeze(0).to(self.device)
-                
+
                 encoding = self.model.encode_image(preprocessed)
                 encoding /= encoding.norm(dim=-1, keepdim=True)
 
                 target_encodings.append(encoding)
-            
+
             target_encoding = torch.cat(target_encodings, axis=0)
-            target_encoding = target_encoding.mean(dim=0, keepdim=True)
+            if unify_mode == 'mean':
+                target_encoding = target_encoding.mean(dim=0, keepdim=True)
+            elif unify_mode == 'median':
+                target_encoding = target_encoding.median(dim=0, keepdim=True).values
+            else:
+                NotImplementedError()
 
             direction = target_encoding - src_encoding
             direction /= direction.norm(dim=-1, keepdim=True)
 
         return direction
 
-    def compute_txt2img_direction(self, source_class: str, target_images: list) -> torch.Tensor:
+    def compute_txt2img_direction(self, source_class: str, target_images: list, unify_mode: str = 'mean') -> torch.Tensor:
         with torch.no_grad():
             src_encoding = self.get_text_features(source_class)
             src_encoding = src_encoding.mean(dim=0, keepdim=True)
@@ -149,17 +153,22 @@ class CLIPLoss(torch.nn.Module):
                 preprocessed = self.clip_preprocess(Image.open(target_img)).unsqueeze(0).to(self.device)
                 encoding = self.model.encode_image(preprocessed)
                 target_encodings.append(encoding)
-            
+
             target_encoding = torch.cat(target_encodings, axis=0)
             target_encoding /= target_encoding.norm(dim=-1, keepdim=True)
-            target_encoding = target_encoding.mean(dim=0, keepdim=True)
+            if unify_mode == 'mean':
+                target_encoding = target_encoding.mean(dim=0, keepdim=True)
+            elif unify_mode == 'median':
+                target_encoding = target_encoding.median(dim=0, keepdim=True).values
+            else:
+                NotImplementedError()
 
             direction = target_encoding - src_encoding
             direction /= direction.norm(dim=-1, keepdim=True)
 
         return direction
 
-    def compute_txt2txt_and_img_direction(self, source_class: str, target_class: str, target_images: list) -> torch.Tensor:
+    def compute_txt2txt_and_img_direction(self, source_class: str, target_class: str, target_images: list, unify_mode: str = 'mean') -> torch.Tensor:
         with torch.no_grad():
             src_encoding = self.get_text_features(source_class)
             src_encoding = src_encoding.mean(dim=0, keepdim=True)
@@ -174,7 +183,12 @@ class CLIPLoss(torch.nn.Module):
             
             target_encoding = torch.cat(target_encodings, axis=0)
             target_encoding /= target_encoding.norm(dim=-1, keepdim=True)
-            target_encoding = target_encoding.mean(dim=0, keepdim=True)
+            if unify_mode == 'mean':
+                target_encoding = target_encoding.mean(dim=0, keepdim=True)
+            elif unify_mode == 'median':
+                target_encoding = target_encoding.median(dim=0, keepdim=True).values
+            else:
+                NotImplementedError()
             target_encoding += target_class_encoding
             target_encoding /= target_encoding.norm(dim=-1, keepdim=True)
 
