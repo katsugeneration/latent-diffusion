@@ -1,4 +1,5 @@
 import argparse, os, sys, glob, datetime, yaml
+import json
 import random
 import torch
 import time
@@ -240,6 +241,7 @@ def run(
                 samples = torch.cat([sample, frozen_sample], dim=-1).to("cpu")
                 if data is not None:
                     samples = torch.cat([samples, img], dim=-1)
+                samples = torch.cat(list(samples), dim=-2)
                 save_logs(samples, logdir, step)
 
         if step % save_ckpt_interval == 0:
@@ -257,12 +259,9 @@ def run(
 
 
 def save_logs(logs, path, step, key="sample"):
-    n_saved = 0
-    for x in logs:
-        img = custom_to_pil(x)
-        imgpath = os.path.join(path, f"{key}_step_{step:06}_{n_saved:06}.png")
-        img.save(imgpath)
-        n_saved += 1
+    img = custom_to_pil(logs)
+    imgpath = os.path.join(path, f"{key}_step_{step:06}.png")
+    img.save(imgpath)
 
 
 def get_parser():
@@ -470,6 +469,9 @@ if __name__ == "__main__":
     os.makedirs(modeldir)
     print(logdir)
     print(75 * "=")
+
+    with open(os.path.join(logdir, "options.json"), "w") as f:
+        f.write(json.dumps(opt.__dict__))
 
     generator = torch.Generator()
     generator.manual_seed(opt.seed)
