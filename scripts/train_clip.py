@@ -136,7 +136,7 @@ def run(
             if data is not None:
                 src_samples = []
                 with torch.no_grad():
-                    for _, lr_image in data:
+                    for img, lr_image in data:
                         if model.cond_stage_key is not None:
                             if model.cond_stage_key == "LR_image":
                                 if not model.cond_stage_trainable:
@@ -145,18 +145,17 @@ def run(
                                     )
                                 else:
                                     cond = lr_image.to(device)
-                        noise = torch.randn(
-                            (
-                                batch_size,
-                                model.channels,
-                                int(resolution // 4),
-                                int(resolution // 4),
-                            )
-                        ).to(device)
+                        latent = model_frozen.get_first_stage_encoding(
+                            model_frozen.encode_first_stage(img.to(device))
+                        )
+                        noise = frozen_sampler.stochastic_encode(
+                            latent,
+                            torch.tensor([custom_steps - 1] * batch_size).to(device),
+                        )
 
-                    frozen_latent = frozen_sampler.decode(noise, cond, custom_steps)
-                    frozen_sample = model_frozen.decode_first_stage(frozen_latent)
-                    src_samples.append(frozen_sample)
+                        frozen_latent = frozen_sampler.decode(noise, cond, custom_steps)
+                        frozen_sample = model_frozen.decode_first_stage(frozen_latent)
+                        src_samples.append(frozen_sample)
                 src_samples = torch.cat(src_samples)
             else:
                 raise NotImplementedError()
@@ -201,14 +200,21 @@ def run(
                             cond = lr_image.to(device)
                 else:
                     raise NotImplementedError()
-            noise = torch.randn(
-                (
-                    batch_size,
-                    model.channels,
-                    int(resolution // 4),
-                    int(resolution // 4),
+                latent = model_frozen.get_first_stage_encoding(
+                    model_frozen.encode_first_stage(img.to(device))
                 )
-            ).to(device)
+                noise = frozen_sampler.stochastic_encode(
+                    latent, torch.tensor([custom_steps - 1] * batch_size).to(device)
+                )
+            else:
+                noise = torch.randn(
+                    (
+                        batch_size,
+                        model.channels,
+                        int(resolution // 4),
+                        int(resolution // 4),
+                    )
+                ).to(device)
 
         with torch.no_grad():
             frozen_latent = frozen_sampler.decode(noise, cond, custom_steps)
@@ -226,7 +232,7 @@ def run(
 
         if step % save_log_interval == 0:
             with torch.no_grad():
-                samples = torch.cat([sample, frozen_sample], dim=-1).to('cpu')
+                samples = torch.cat([sample, frozen_sample], dim=-1).to("cpu")
                 if data is not None:
                     samples = torch.cat([samples, img], dim=-1)
                 save_logs(samples, logdir, step)
@@ -439,7 +445,12 @@ if __name__ == "__main__":
     print(f"global step: {global_step}")
     print(75 * "=")
     print("logging to:")
-    logdir = os.path.join(logdir, "samples", f"{global_step:08}", f"{now}_{opt.src_class}_to_{opt.target_class}_lr{opt.lr}_l1{opt.l1_w}_r{opt.resolution}_b{opt.batch_size}")
+    logdir = os.path.join(
+        logdir,
+        "samples",
+        f"{global_step:08}",
+        f"{now}_{opt.src_class}_to_{opt.target_class}_lr{opt.lr}_l1{opt.l1_w}_r{opt.resolution}_b{opt.batch_size}",
+    )
     imglogdir = os.path.join(logdir, "img")
     modeldir = os.path.join(logdir, "model")
 
