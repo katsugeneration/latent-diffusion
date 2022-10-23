@@ -267,6 +267,13 @@ def save_logs(logs, path, step, key="sample"):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--run_name",
+        type=str,
+        nargs="?",
+        help="run name for logdir",
+        default="train",
+    )
+    parser.add_argument(
         "-r",
         "--resume",
         type=str,
@@ -460,7 +467,7 @@ if __name__ == "__main__":
         logdir,
         "samples",
         f"{global_step:08}",
-        f"{now}_{opt.src_class}_to_{opt.target_class}_lr{opt.lr}_l1{opt.l1_w}_r{opt.resolution}_b{opt.batch_size}_u{opt.unify_mode}",
+        f"{now}_{opt.run_name}_{opt.src_class}_to_{opt.target_class}_lr{opt.lr}_l1{opt.l1_w}_r{opt.resolution}_b{opt.batch_size}_u{opt.unify_mode}",
     )
     imglogdir = os.path.join(logdir, "img")
     modeldir = os.path.join(logdir, "model")
